@@ -7,8 +7,7 @@ from streamlit_gsheets import GSheetsConnection
 
 st.set_page_config(page_title="점심 사다리타기", page_icon="🪜", layout="centered")
 
-st.title("🪜 점심 사다리타기")
-st.write("구글 스프레드시트와 연동되어 목록이 영구적으로 저장됩니다!")
+st.markdown("<h1 style='word-break: keep-all;'>🪜 점심 사다리타기</h1>", unsafe_allow_html=True)
 
 # 1. 구글 시트 DB 연결
 conn = st.connection("gsheets", type=GSheetsConnection)
