@@ -64,16 +64,39 @@ with st.expander("🛠️ 식당 후보 관리 (자동 저장됨)", expanded=Tru
         
     st.divider()
     
-    # 💡 [핵심] 모바일 화면이 좁아도 컬럼(칸)이 다음 줄로 떨어지지 않게 꽉 잡아주는 CSS 코드입니다.
+    # 💡 [전문가 UI 최적화] 전역 설정을 버리고, 오직 '식당 후보 목록' 영역에만 정밀하게 적용되는 CSS를 추가합니다.
     st.markdown("""
     <style>
-        div[data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; }
+        /* 1. 첫 번째 아코디언(식당 관리) 내의 컬럼 묶음만 타겟팅하여 밖으로 튀어나감을 원천 차단 */
+        div[data-testid="stExpander"]:nth-of-type(1) div[data-testid="stHorizontalBlock"] { 
+            flex-wrap: nowrap !important; 
+            width: 100% !important;
+            overflow: hidden !important; 
+        }
+        
+        /* 2. 왼쪽 글씨 영역: 화면이 좁아지면 스스로 텍스트 영역을 축소하여 버튼을 밖으로 밀어내지 않음 */
+        div[data-testid="stExpander"]:nth-of-type(1) div[data-testid="stHorizontalBlock"] > div:nth-child(1) {
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+            padding-right: 5px !important;
+        }
+        
+        /* 3. 오른쪽 ❌ 버튼 영역: 어떤 기기에서든 우측 끝에 45px 사이즈로 강제 고정 */
+        div[data-testid="stExpander"]:nth-of-type(1) div[data-testid="stHorizontalBlock"] > div:nth-child(2) {
+            flex: 0 0 45px !important; 
+            min-width: 45px !important;
+        }
+        
+        /* 4. ❌ 버튼 자체의 불필요한 좌우 여백을 없애 컴팩트하게 구성 */
+        div[data-testid="stExpander"]:nth-of-type(1) div[data-testid="stHorizontalBlock"] button {
+            padding: 0 !important;
+        }
     </style>
     """, unsafe_allow_html=True)
     
-    st.write("📝 **현재 후보 목록**")
+    st.write("📝 **현재 후보 목록** (구글 시트 연동 중)")
     for i, rest in enumerate(restaurants):
-        # 1번 칸(글씨)은 85%, 2번 칸(버튼)은 15%로 나누고 세로 중앙에 맞춥니다.
+        # 컬럼의 비율은 위 CSS의 고정 크기 규칙에 의해 완벽하게 통제됩니다.
         col_info, col_btn = st.columns([0.85, 0.15], vertical_alignment="center")
         
         with col_info:
@@ -81,12 +104,11 @@ with st.expander("🛠️ 식당 후보 관리 (자동 저장됨)", expanded=Tru
             st.write(f"**{i+1}.** {icon} {rest['name']}")
             
         with col_btn:
-            # 거대한 버튼 대신, 깔끔한 X 아이콘만 우측 끝에 작게 배치합니다.
-            if st.button("❌", key=f"del_{i}"):
+            # 45px 고정 영역 안에서 버튼이 꽉 차게 렌더링되도록 use_container_width=True 재적용
+            if st.button("❌", key=f"del_{i}", use_container_width=True):
                 updated_df = df.drop(index=i)
                 update_sheet(updated_df)
                 st.rerun()
-
 st.divider()
 
 # 4. 사다리 애니메이션 시각화 구현
@@ -362,7 +384,7 @@ if len(restaurants) >= 2:
     """
     
     # 💡 [UI 개선] 660이었던 고정 높이를 520으로 줄여 불필요한 태평양 공백을 없앱니다.
-    components.html(html_code, height=520)
+    components.html(html_code, height=450)
     
 else:
     st.warning("사다리를 타려면 식당 후보가 최소 2개 이상이어야 합니다. 식당을 추가해주세요!")
