@@ -358,3 +358,66 @@ if len(restaurants) >= 2:
     
 else:
     st.warning("사다리를 타려면 식당 후보가 최소 2개 이상이어야 합니다. 식당을 추가해주세요!")
+
+st.divider()
+
+# 5. 점심 기록(히스토리) 저장 기능
+st.markdown("<h2 style='text-align: center; word-break: keep-all;'>📅 점심 기록 남기기</h2>", unsafe_allow_html=True)
+
+# 기록용 시트 불러오기 (시트 이름: '기록')
+try:
+    history_df = conn.read(worksheet="기록", ttl=0)
+    history_df = history_df.dropna(how="all")
+except Exception:
+    # 시트가 없거나 비어있을 경우를 대비해 빈 뼈대 만들기
+    history_df = pd.DataFrame(columns=["날짜", "식당이름", "메뉴및메모"])
+
+with st.expander("📝 어떤 메뉴를 드셨는지 기록해 보세요!", expanded=False):
+    with st.form("history_form"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # 날짜 선택 (기본값: 오늘 날짜)
+            selected_date = st.date_input("날짜 선택")
+            
+            # 등록된 식당 목록을 가져와서 선택지에 추가
+            restaurant_names = [r["name"] for r in restaurants] if restaurants else []
+            selected_rest = st.selectbox("어디로 가셨나요?", ["직접 입력..."] + restaurant_names)
+            
+            # 만약 '직접 입력...'을 선택했다면 텍스트 입력창 띄우기
+            if selected_rest == "직접 입력...":
+                selected_rest = st.text_input("식당 이름 직접 입력")
+        
+        with col2:
+            # 무엇을 먹었는지, 어땠는지 적는 칸
+            memo = st.text_area("무엇을 드셨나요? (메뉴, 평가 등)", height=110)
+        
+        submit_btn = st.form_submit_button("💾 기록 저장하기", use_container_width=True)
+        
+        if submit_btn:
+            if selected_rest:
+                # 새로운 기록을 표(데이터프레임) 형태로 만들기
+                new_history = pd.DataFrame([{
+                    "날짜": str(selected_date), 
+                    "식당이름": selected_rest, 
+                    "메뉴및메모": memo
+                }])
+                # 기존 기록 아래에 새로운 기록 이어 붙이기
+                updated_history = pd.concat([history_df, new_history], ignore_index=True)
+                # 구글 시트에 덮어쓰기
+                conn.update(worksheet="기록", data=updated_history)
+                
+                st.success("점심 기록이 성공적으로 저장되었습니다!")
+                st.rerun() # 새로고침하여 기록 목록 업데이트
+            else:
+                st.error("식당 이름을 입력하거나 선택해주세요!")
+
+    st.divider()
+    
+    st.write("📖 **이전 점심 기록 모아보기**")
+    if not history_df.empty:
+        # 최신 기록이 위로 오도록 날짜 기준 내림차순 정렬
+        sorted_history = history_df.sort_values(by="날짜", ascending=False)
+        st.dataframe(sorted_history, use_container_width=True, hide_index=True)
+    else:
+        st.info("아직 저장된 식사 기록이 없습니다. 오늘의 첫 식사를 기록해 보세요!")
