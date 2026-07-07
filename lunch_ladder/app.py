@@ -415,57 +415,26 @@ with st.expander("📝 어떤 메뉴를 드셨는지 기록해 보세요!", expa
             else:
                 st.error("식당 이름을 입력하거나 선택해주세요!")
 
-# 💡 [새로 추가된 부분] 저장된 기록을 수정하거나 삭제하는 기능
-with st.expander("🛠️ 기록 수정 및 삭제", expanded=False):
-    if not history_df.empty:
-        # 사용자가 선택하기 쉽도록 목록 만들기 (예: [0] 2026-07-07 - 김밥천국)
-        history_list = []
-        for i, row in history_df.iterrows():
-            history_list.append(f"[{i}] {row['날짜']} - {row['식당이름']}")
-        
-        selected_history = st.selectbox("수정하거나 삭제할 기록을 선택하세요", history_list)
-        
-        if selected_history:
-            # 선택한 항목에서 '[숫자]' 부분의 숫자(인덱스)만 쏙 뽑아냅니다.
-            selected_idx = int(selected_history.split("]")[0][1:])
-            selected_row = history_df.loc[selected_idx]
-            
-            # 기존 내용을 입력칸에 미리 채워 보여주고, 수정할 수 있게 합니다.
-            edit_date = st.text_input("날짜 수정", value=selected_row['날짜'])
-            edit_rest = st.text_input("식당 이름 수정", value=selected_row['식당이름'])
-            # 메모가 비어있을 수 있으므로 안전하게 가져오기 (get 사용)
-            edit_memo = st.text_area("메뉴 및 메모 수정", value=str(selected_row.get('메뉴및메모', '')))
-            
-            col_edit, col_del = st.columns(2)
-            with col_edit:
-                if st.button("💾 수정 내용 저장", use_container_width=True):
-                    # 표(데이터프레임)에서 선택된 행의 데이터만 새로운 내용으로 교체
-                    history_df.at[selected_idx, '날짜'] = edit_date
-                    history_df.at[selected_idx, '식당이름'] = edit_rest
-                    history_df.at[selected_idx, '메뉴및메모'] = edit_memo
-                    
-                    # 구글 시트 덮어쓰기
-                    conn.update(worksheet="기록", data=history_df)
-                    st.success("기록이 성공적으로 수정되었습니다!")
-                    st.rerun()
-            with col_del:
-                if st.button("🗑️ 이 기록 삭제", use_container_width=True):
-                    # 선택된 행을 표에서 아예 지워버리고 행 번호를 다시 정렬
-                    updated_history = history_df.drop(index=selected_idx).reset_index(drop=True)
-                    
-                    # 구글 시트 덮어쓰기
-                    conn.update(worksheet="기록", data=updated_history)
-                    st.success("기록이 삭제되었습니다!")
-                    st.rerun()
-    else:
-        st.info("수정하거나 삭제할 기록이 아직 없습니다.")
-        
 st.divider()
 
-st.write("📖 **이전 점심 기록 모아보기**")
+st.write("📖 **이전 점심 기록 모아보기 (엑셀처럼 표를 직접 수정/삭제하세요!)**")
 if not history_df.empty:
     # 최신 기록이 위로 오도록 날짜 기준 내림차순 정렬
-    sorted_history = history_df.sort_values(by="날짜", ascending=False)
-    st.dataframe(sorted_history, use_container_width=True, hide_index=True)
+    sorted_history = history_df.sort_values(by="날짜", ascending=False).reset_index(drop=True)
+    
+    # 💡 st.dataframe 대신 st.data_editor를 사용하여 표 자체를 편집 가능하게 만듭니다.
+    # num_rows="dynamic"을 설정하면 표 안에서 행을 직접 삭제하거나 추가할 수 있습니다.
+    edited_history = st.data_editor(
+        sorted_history,
+        use_container_width=True,
+        num_rows="dynamic",
+        hide_index=True
+    )
+    
+    # 💡 변경된 표의 최종 상태를 통째로 구글 시트에 덮어쓰는 버튼
+    if st.button("💾 표의 변경사항을 구글 시트에 저장", use_container_width=True):
+        conn.update(worksheet="기록", data=edited_history)
+        st.success("수정 및 삭제된 내용이 구글 시트에 성공적으로 반영되었습니다!")
+        st.rerun()
 else:
     st.info("아직 저장된 식사 기록이 없습니다. 오늘의 첫 식사를 기록해 보세요!")
