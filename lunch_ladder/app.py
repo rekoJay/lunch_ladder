@@ -64,17 +64,18 @@ with st.expander("🛠️ 식당 후보 관리 (자동 저장됨)", expanded=Tru
         
     st.divider()
     
-    st.write("📝 **현재 후보 목록** (구글 시트 연동 중)")
+    st.write("📝 **현재 후보 목록**")
     for i, rest in enumerate(restaurants):
-        col_info, col_btn = st.columns([4, 1])
+        # 💡 [UI 개선] 모바일에서도 한 줄에 예쁘게 나오도록 비율을 세밀하게 나누고 세로 중앙 정렬 옵션을 추가합니다.
+        col_info, col_btn = st.columns([0.85, 0.15], vertical_alignment="center")
         with col_info:
             if rest["type"] == "emoji":
-                st.write(f"{i+1}. {rest['content']} {rest['name']}")
+                st.write(f"**{i+1}.** {rest['content']} {rest['name']}")
             else:
-                st.write(f"{i+1}. 🖼️ {rest['name']} (직접 업로드됨)")
+                st.write(f"**{i+1}.** 🖼️ {rest['name']}")
         with col_btn:
-            if st.button("❌", key=f"del_{i}"):
-                # 선택한 식당 데이터를 삭제하고 시트에 덮어쓰기
+            # 💡 [UI 개선] 버튼이 공간을 꽉 채우도록 use_container_width=True 적용
+            if st.button("❌", key=f"del_{i}", use_container_width=True):
                 updated_df = df.drop(index=i)
                 update_sheet(updated_df)
                 st.rerun()
@@ -89,12 +90,14 @@ if len(restaurants) >= 2:
     <!DOCTYPE html>
     <html>
     <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body {{ text-align: center; font-family: 'Malgun Gothic', sans-serif; }}
-        h3 {{ color: #FF4B4B; margin-bottom: 5px; }}
+        body {{ text-align: center; font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 0; }}
+        h3 {{ color: #FF4B4B; margin-bottom: 5px; font-size: 1.2rem; }}
         .question-mark {{
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 150px; color: rgba(0, 0, 0, 0.05); font-weight: bold; pointer-events: none; z-index: 0;
+            /* 스마트폰에서 물음표 크기도 적당히 줄어들게 반응형 적용 */
+            font-size: min(150px, 30vw); color: rgba(0, 0, 0, 0.05); font-weight: bold; pointer-events: none; z-index: 0;
         }}
         .canvas-container {{ position: relative; display: inline-block; width: 100%; max-width: 800px; }}
         canvas {{ 
@@ -103,9 +106,11 @@ if len(restaurants) >= 2:
             cursor: pointer; touch-action: manipulation; position: relative; z-index: 1;
         }}
         .reset-button {{
-            display: none; margin-top: 20px; padding: 12px 30px; font-size: 16px; 
+            display: none; margin-top: 15px; padding: 12px 30px; font-size: 16px; 
             font-weight: bold; background-color: #007BFF; color: white; border: none; 
             border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            /* 모바일에서 버튼이 너무 작지 않도록 설정 */
+            width: 100%; max-width: 300px; 
         }}
     </style>
     </head>
@@ -120,7 +125,6 @@ if len(restaurants) >= 2:
         </div>
         
         <script>
-            // const에서 let으로 변경하여 배열을 덮어쓸 수 있게 만듭니다.
             let restaurants = {rest_json};
             const canvas = document.getElementById('ladderCanvas');
             const ctx = canvas.getContext('2d');
@@ -138,7 +142,6 @@ if len(restaurants) >= 2:
             let rungs = [];
             let customImages = [];
             
-            // 💡 [새로 추가된 기능] 배열 안의 순서를 무작위로 뒤섞는 함수
             function shuffleArray(array) {{
                 for (let i = array.length - 1; i > 0; i--) {{
                     const j = Math.floor(Math.random() * (i + 1));
@@ -146,7 +149,6 @@ if len(restaurants) >= 2:
                 }}
             }}
 
-            // 💡 [새로 추가된 기능] 식당 리스트를 섞고 이미지를 다시 불러오는 함수
             function setupRestaurants() {{
                 shuffleArray(restaurants);
                 customImages = [];
@@ -175,7 +177,6 @@ if len(restaurants) >= 2:
             let isLadderRevealed = false;
             let isAnimating = false;
             
-            // 처음 실행될 때 식당 순서를 무작위로 한 번 섞어줍니다.
             setupRestaurants(); 
             generateRungs(); 
             
@@ -234,7 +235,6 @@ if len(restaurants) >= 2:
                 }}
             }}
             
-            // 이미지가 없는 이모지 모드일 때를 대비해 초기 그리기를 실행합니다.
             drawLadder(); 
             
             function tracePath(startIndex) {{
@@ -344,7 +344,6 @@ if len(restaurants) >= 2:
                 document.getElementById('statusText').innerText = "👆 출발선 번호를 클릭하세요!";
                 document.getElementById('resetBtn').style.display = 'none';
                 
-                // 💡 [새로 추가된 기능] 다시 타기 버튼을 누를 때마다 식당 순서를 새롭게 섞어줍니다!
                 setupRestaurants(); 
                 generateRungs();
                 drawLadder();
@@ -354,7 +353,8 @@ if len(restaurants) >= 2:
     </html>
     """
     
-    components.html(html_code, height=660)
+    # 💡 [UI 개선] 660이었던 고정 높이를 520으로 줄여 불필요한 태평양 공백을 없앱니다.
+    components.html(html_code, height=520)
     
 else:
     st.warning("사다리를 타려면 식당 후보가 최소 2개 이상이어야 합니다. 식당을 추가해주세요!")
