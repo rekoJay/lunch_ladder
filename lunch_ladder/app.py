@@ -120,7 +120,8 @@ if len(restaurants) >= 2:
         </div>
         
         <script>
-            const restaurants = {rest_json};
+            // const에서 let으로 변경하여 배열을 덮어쓸 수 있게 만듭니다.
+            let restaurants = {rest_json};
             const canvas = document.getElementById('ladderCanvas');
             const ctx = canvas.getContext('2d');
             
@@ -137,14 +138,27 @@ if len(restaurants) >= 2:
             let rungs = [];
             let customImages = [];
             
-            restaurants.forEach((r, idx) => {{
-                if (r.type === 'image') {{
-                    const img = new Image();
-                    img.src = r.content;
-                    img.onload = () => {{ drawLadder(); }};
-                    customImages[idx] = img;
+            // 💡 [새로 추가된 기능] 배열 안의 순서를 무작위로 뒤섞는 함수
+            function shuffleArray(array) {{
+                for (let i = array.length - 1; i > 0; i--) {{
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
                 }}
-            }});
+            }}
+
+            // 💡 [새로 추가된 기능] 식당 리스트를 섞고 이미지를 다시 불러오는 함수
+            function setupRestaurants() {{
+                shuffleArray(restaurants);
+                customImages = [];
+                restaurants.forEach((r, idx) => {{
+                    if (r.type === 'image') {{
+                        const img = new Image();
+                        img.src = r.content;
+                        img.onload = () => {{ drawLadder(); }};
+                        customImages[idx] = img;
+                    }}
+                }});
+            }}
             
             function generateRungs() {{
                 rungs = [];
@@ -160,6 +174,9 @@ if len(restaurants) >= 2:
             
             let isLadderRevealed = false;
             let isAnimating = false;
+            
+            // 처음 실행될 때 식당 순서를 무작위로 한 번 섞어줍니다.
+            setupRestaurants(); 
             generateRungs(); 
             
             function drawLadder() {{
@@ -217,6 +234,7 @@ if len(restaurants) >= 2:
                 }}
             }}
             
+            // 이미지가 없는 이모지 모드일 때를 대비해 초기 그리기를 실행합니다.
             drawLadder(); 
             
             function tracePath(startIndex) {{
@@ -325,6 +343,9 @@ if len(restaurants) >= 2:
                 document.getElementById('secretMark').style.display = 'block';
                 document.getElementById('statusText').innerText = "👆 출발선 번호를 클릭하세요!";
                 document.getElementById('resetBtn').style.display = 'none';
+                
+                // 💡 [새로 추가된 기능] 다시 타기 버튼을 누를 때마다 식당 순서를 새롭게 섞어줍니다!
+                setupRestaurants(); 
                 generateRungs();
                 drawLadder();
             }});
