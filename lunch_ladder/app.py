@@ -66,19 +66,12 @@ with st.expander("🛠️ 식당 후보 관리 (자동 저장됨)", expanded=Tru
     
     st.write("📝 **현재 후보 목록**")
     for i, rest in enumerate(restaurants):
-        # 💡 [UI 개선] 모바일에서도 한 줄에 예쁘게 나오도록 비율을 세밀하게 나누고 세로 중앙 정렬 옵션을 추가합니다.
-        col_info, col_btn = st.columns([0.85, 0.15], vertical_alignment="center")
-        with col_info:
-            if rest["type"] == "emoji":
-                st.write(f"**{i+1}.** {rest['content']} {rest['name']}")
-            else:
-                st.write(f"**{i+1}.** 🖼️ {rest['name']}")
-        with col_btn:
-            # 💡 [UI 개선] 버튼이 공간을 꽉 채우도록 use_container_width=True 적용
-            if st.button("❌", key=f"del_{i}", use_container_width=True):
-                updated_df = df.drop(index=i)
-                update_sheet(updated_df)
-                st.rerun()
+        # 💡 [UI 개선] 모바일에서 화면이 쪼개져 깨지는 현상을 막기 위해, 컬럼을 없애고 직관적인 통합 버튼 하나로 바꿉니다.
+        icon = rest["content"] if rest["type"] == "emoji" else "🖼️"
+        if st.button(f"{i+1}. {icon} {rest['name']} ❌ 삭제", key=f"del_{i}", use_container_width=True):
+            updated_df = df.drop(index=i)
+            update_sheet(updated_df)
+            st.rerun()
 
 st.divider()
 
@@ -96,12 +89,22 @@ if len(restaurants) >= 2:
         h3 {{ color: #FF4B4B; margin-bottom: 5px; font-size: 1.2rem; }}
         .question-mark {{
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            /* 스마트폰에서 물음표 크기도 적당히 줄어들게 반응형 적용 */
-            font-size: min(150px, 30vw); color: rgba(0, 0, 0, 0.05); font-weight: bold; pointer-events: none; z-index: 0;
+            font-size: 150px; color: rgba(0, 0, 0, 0.05); font-weight: bold; pointer-events: none; z-index: 0;
         }}
-        .canvas-container {{ position: relative; display: inline-block; width: 100%; max-width: 800px; }}
+        /* 💡 [UI 개선] 넘치는 영역은 스마트폰에서 손가락으로 좌우로 넘겨볼 수 있도록(스와이프) 설정합니다. */
+        .canvas-container {{ 
+            position: relative; 
+            display: inline-block; 
+            width: 100%; 
+            max-width: 800px; 
+            overflow-x: auto; 
+            -webkit-overflow-scrolling: touch; 
+        }}
         canvas {{ 
-            width: 100%; height: auto; background-color: #f9f9f9; 
+            /* 💡 [UI 개선] 모바일에서 그림이 강제로 쪼그라들지 않도록 width와 height를 원래 비율로 고정합니다. */
+            width: 800px; 
+            height: 500px; 
+            background-color: #f9f9f9; 
             border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
             cursor: pointer; touch-action: manipulation; position: relative; z-index: 1;
         }}
@@ -109,7 +112,6 @@ if len(restaurants) >= 2:
             display: none; margin-top: 15px; padding: 12px 30px; font-size: 16px; 
             font-weight: bold; background-color: #007BFF; color: white; border: none; 
             border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            /* 모바일에서 버튼이 너무 작지 않도록 설정 */
             width: 100%; max-width: 300px; 
         }}
     </style>
