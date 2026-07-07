@@ -64,14 +64,28 @@ with st.expander("🛠️ 식당 후보 관리 (자동 저장됨)", expanded=Tru
         
     st.divider()
     
+    # 💡 [핵심] 모바일 화면이 좁아도 컬럼(칸)이 다음 줄로 떨어지지 않게 꽉 잡아주는 CSS 코드입니다.
+    st.markdown("""
+    <style>
+        div[data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; }
+    </style>
+    """, unsafe_allow_html=True)
+    
     st.write("📝 **현재 후보 목록**")
     for i, rest in enumerate(restaurants):
-        # 💡 [UI 개선] 모바일에서 화면이 쪼개져 깨지는 현상을 막기 위해, 컬럼을 없애고 직관적인 통합 버튼 하나로 바꿉니다.
-        icon = rest["content"] if rest["type"] == "emoji" else "🖼️"
-        if st.button(f"{i+1}. {icon} {rest['name']} ❌ 삭제", key=f"del_{i}", use_container_width=True):
-            updated_df = df.drop(index=i)
-            update_sheet(updated_df)
-            st.rerun()
+        # 1번 칸(글씨)은 85%, 2번 칸(버튼)은 15%로 나누고 세로 중앙에 맞춥니다.
+        col_info, col_btn = st.columns([0.85, 0.15], vertical_alignment="center")
+        
+        with col_info:
+            icon = rest["content"] if rest["type"] == "emoji" else "🖼️"
+            st.write(f"**{i+1}.** {icon} {rest['name']}")
+            
+        with col_btn:
+            # 거대한 버튼 대신, 깔끔한 X 아이콘만 우측 끝에 작게 배치합니다.
+            if st.button("❌", key=f"del_{i}"):
+                updated_df = df.drop(index=i)
+                update_sheet(updated_df)
+                st.rerun()
 
 st.divider()
 
@@ -89,21 +103,13 @@ if len(restaurants) >= 2:
         h3 {{ color: #FF4B4B; margin-bottom: 5px; font-size: 1.2rem; }}
         .question-mark {{
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 150px; color: rgba(0, 0, 0, 0.05); font-weight: bold; pointer-events: none; z-index: 0;
+            font-size: min(150px, 30vw); color: rgba(0, 0, 0, 0.05); font-weight: bold; pointer-events: none; z-index: 0;
         }}
-        /* 💡 [UI 개선] 넘치는 영역은 스마트폰에서 손가락으로 좌우로 넘겨볼 수 있도록(스와이프) 설정합니다. */
-        .canvas-container {{ 
-            position: relative; 
-            display: inline-block; 
-            width: 100%; 
-            max-width: 800px; 
-            overflow-x: auto; 
-            -webkit-overflow-scrolling: touch; 
-        }}
+        /* 💡 가로 스크롤을 완전히 제거했습니다. */
+        .canvas-container {{ position: relative; display: inline-block; width: 100%; max-width: 800px; }}
         canvas {{ 
-            /* 💡 [UI 개선] 모바일에서 그림이 강제로 쪼그라들지 않도록 width와 height를 원래 비율로 고정합니다. */
-            width: 800px; 
-            height: 500px; 
+            /* 💡 한 화면에 모두 쏙 들어오게 100% 비율로 자동 축소되도록 복구했습니다. */
+            width: 100%; height: auto; 
             background-color: #f9f9f9; 
             border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
             cursor: pointer; touch-action: manipulation; position: relative; z-index: 1;
