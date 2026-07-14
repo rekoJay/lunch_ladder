@@ -2,6 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import json
 import base64
+import random
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 
@@ -113,7 +114,9 @@ st.divider()
 
 # 4. 사다리 애니메이션 시각화 구현
 if len(restaurants) >= 2:
-    rest_json = json.dumps(restaurants)
+    # 후보가 아무리 많아도 최대 10개까지만 무작위로 추출하여 사다리 생성
+    sampled_restaurants = random.sample(restaurants, min(len(restaurants), 10))
+    rest_json = json.dumps(sampled_restaurants)
     
     html_code = f"""
     <!DOCTYPE html>
@@ -166,7 +169,7 @@ if len(restaurants) >= 2:
             const topMargin = 80;
             const bottomMargin = 100;
             const colWidth = (w - 2 * padding) / (N - 1);
-            const gridRows = 20; 
+            const gridRows = 30; 
             const rowHeight = (h - topMargin - bottomMargin) / gridRows;
             
             let rungs = [];
@@ -195,15 +198,23 @@ if len(restaurants) >= 2:
             function generateRungs() {{
                 rungs = [];
                 for (let r = 1; r < gridRows; r++) {{
-                    for (let c = 0; c < N - 1; c++) {{
-                        if (Math.random() > 0.4) {{
-                            let hasLeft = rungs.some(rung => rung.row === r && rung.col === c - 1);
-                            if (!hasLeft) rungs.push({{ row: r, col: c, y: topMargin + r * rowHeight }});
+                    // 왼쪽에서 오른쪽으로 편향되지 않도록 열 인덱스를 무작위로 섞음
+                    let cols = [];
+                    for (let c = 0; c < N - 1; c++) cols.push(c);
+                    shuffleArray(cols);
+                    
+                    let placed = new Set();
+                    for (let c of cols) {{
+                        // 인접한 칸에 다리가 없는 경우에만 70% 확률로 다리 생성
+                        if (!placed.has(c - 1) && !placed.has(c + 1) && !placed.has(c)) {{
+                            if (Math.random() > 0.3) {{
+                                rungs.push({{ row: r, col: c, y: topMargin + r * rowHeight }});
+                                placed.add(c);
+                            }}
                         }}
                     }}
                 }}
             }}
-            
             let isLadderRevealed = false;
             let isAnimating = false;
             
